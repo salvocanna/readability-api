@@ -22,52 +22,64 @@ app.route('/parser')
         const url = req.query.url;
         if (url && validUrl.isUri(url)) {
             const parsedURL = urllib.parse(url);
-
-            read(url, (err, article, meta) => {
-                if (err) {
-                    res.json({ err });
-                    return;
-                }
-
-                const content = sanitize(article.content);
-                const title = article.title;
-
-                // Close article to clean up jsdom and prevent leaks
-                article.close();
-
-                res.json({
-                    url,
-                    title,
-                    content,
-                    domain: parsedURL.hostname,
-                    // date_published: null,
-                    // lead_image_url: null,
-                });
-            });
+            readabilityProcess(url)
+                .then((result) => {
+                    res.json(Object.assign(result, {
+                        url,
+                        domain: parsedURL.hostname,
+                    }));
+                })
+                .catch((err) => error(res, err));
         } else {
             error(res, `Not a valid URL supplied`);
         }
     })
     .post((req, res) => {
-        console.log('GET');
+        console.log('POST');
 
         if (req.body && req.body.url) {
             const url = req.body.url;
-            if (validUrl.isUri(url)) {
-                res.json({ message: `Let's go parse ${url}` });
-
-
-
+            if (url && validUrl.isUri(url)) {
+                const parsedURL = urllib.parse(input);
+                readabilityProcess(url)
+                    .then((result) => {
+                        res.json(Object.assign(result, {
+                            url,
+                            domain: parsedURL.hostname,
+                        }));
+                    })
+                    .catch((err) => error(res, err));
             } else {
                 error(res, `${req.body.url} is not recognised as valid URL`);
             }
         } else {
-            error(res, `Not yet implemented`);
+            readabilityProcess(req.body)
+                .then((result) => res.json(result))
+                .catch((err) => error(res, err));
         }
-
-        //console.log(req.body);
-        res.json({json: 'YAS'});
     });
+
+const readabilityProcess = (input) => {
+    return new Promise((resolve, reject) => {
+        read(input, (err, article, meta) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+
+            const content = sanitize(article.content);
+            const title = article.title;
+
+            // Close article to clean up jsdom and prevent leaks
+            article.close();
+
+            resolve({
+                title,
+                content,
+            });
+        });
+    });
+};
 
 const error = (resp, errorMessage) => {
     console.error(errorMessage);
