@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2",
+    "node-readability": "^3.0.0",
+    "valid-url": "^1.0.9"
+  }
+}
